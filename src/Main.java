@@ -5,37 +5,16 @@ import java.awt.event.*;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 
 
-abstract class object extends JFrame {
-    public int StartingPosX;
-    public int StartingPosY;
+interface object {
 
-//    public BufferedImage img;
-
-    abstract public void MoveImg();
+    abstract public void BroMove();
     abstract public void StopImg();
     abstract public void DeleteImg();
 
 }
 
-
-class HeartThread extends Thread {
-
-    private MyPanel panel;
-    private Heart heart;
-
-    HeartThread(MyPanel panel, int x, int y) {
-        this.panel = panel;
-        this.heart = new Heart(x, y);
-    }
-
-    @Override
-    public void run() {
-        panel.addHeart(heart);
-    }
-}
 
 class Heart extends JPanel {
     private int x;
@@ -45,31 +24,30 @@ class Heart extends JPanel {
 
     private Random random;
     Image img;
-    Timer timer;
 
     Heart(int x, int y) {
         this.x = x;
         this.y = y;
+        this.random = new Random();
         img = new ImageIcon(Objects.requireNonNull(getClass().getResource("/1122.png"))).getImage();
     }
 
     public int getX() {
         return this.x;
     }
-
     public int getY() {
         return this.y;
     }
-
     public Image getImg() {
         return this.img;
     }
 
-    public void BroMove() {
-        double randomSeed = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
 
-        double deltaX = Math.cos(randomSeed);
-        double deltaY = Math.sin(randomSeed);
+    public void BroMove() {
+        double randomSeed = random.nextDouble(-10, 10) * 2 * Math.PI;
+
+        double deltaX = 10 * Math.cos(randomSeed);
+        double deltaY = 10 * Math.sin(randomSeed);
 
         this.x += deltaX;
         this.y += deltaY;
@@ -82,6 +60,8 @@ class Heart extends JPanel {
     }
 }
 
+
+
 class MyPanel extends JPanel implements MouseListener {
     private java.util.List<Heart> hearts = new java.util.ArrayList<>();
     private Timer timer;
@@ -91,24 +71,38 @@ class MyPanel extends JPanel implements MouseListener {
         this.setBackground(Color.PINK);
         this.addMouseListener(this);
 
-        timer = new Timer(32, e -> {
+        timer = new Timer(128, e -> {
             for (Heart heart : hearts) {
                 heart.BroMove();
             }
             repaint();
         });
         timer.start();
+
+        setFocusable(true); // Чтобы KeyListener считывал текущую панель
+        addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    timer.stop();
+                }
+            }
+
+            @Override
+            public void keyReleased(KeyEvent e) {
+                super.keyReleased(e);
+                timer.restart();
+            }
+        });
     }
 
     public void addHeart(Heart heart) {
         hearts.add(heart);
-        repaint();
     }
 
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-
         for (Heart heart : hearts) {
             heart.paintComponent(g);
         }
@@ -118,31 +112,19 @@ class MyPanel extends JPanel implements MouseListener {
     public void mouseClicked(MouseEvent e) {
         int initialX = e.getX() - (52 / 2);  // штука чтобы сердце спавнилось по центру мышки
         int initialY = e.getY() - (76 / 2);  // доп доп ес ес
-
-        HeartThread heartThread = new HeartThread(this, initialX, initialY);
-        heartThread.start();
-
+        this.addHeart(new Heart(initialX, initialY));
     }
 
     @Override
-    public void mousePressed(MouseEvent e) {
-
-    }
-
+    public void mousePressed(MouseEvent e) {}
     @Override
-    public void mouseReleased(MouseEvent e) {
-
-    }
-
+    public void mouseReleased(MouseEvent e) {}
     @Override
-    public void mouseEntered(MouseEvent e) {
-
-    }
-
+    public void mouseEntered(MouseEvent e) {}
     @Override
-    public void mouseExited(MouseEvent e) {
+    public void mouseExited(MouseEvent e) {}
 
-    }
+
 }
 
 class Window  {
