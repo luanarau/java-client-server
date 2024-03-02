@@ -2,30 +2,32 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.Objects;
 import java.util.Random;
 
+abstract class Object extends JPanel implements Serializable {
+    private int x;
+    private int y;
 
-interface object {
+    private Random random;
+    private transient Image img;
 
     abstract public void BroMove();
-    abstract public void StopImg();
-    abstract public void DeleteImg();
-
 }
 
 
-class Heart extends JPanel {
+class Viksa_beer extends Object implements Serializable {
     private int x;
     private int y;
     public int heartWidth = 64;
     public int heartHeight = 64;
 
-    private Random random;
-    Image img;
 
-    Heart(int x, int y) {
+    private final Random random;
+    private final transient Image img;
+
+    Viksa_beer(int x, int y) {
         this.x = x;
         this.y = y;
         this.random = new Random();
@@ -58,12 +60,21 @@ class Heart extends JPanel {
         super.paintComponent(g);
         g.drawImage(this.img, this.getX(), this.getY(), null);
     }
+
+    public void serialization() {
+        try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream("seri.ser"))) {
+            objectOutputStream.writeObject(this);
+            System.out.println("Object has been serialized.");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
 
 
 
 class MyPanel extends JPanel implements MouseListener {
-    private java.util.List<Heart> hearts = new java.util.ArrayList<>();
+    private java.util.List<Viksa_beer> Viksas_beer = new java.util.ArrayList<>();
     private Timer timer;
 
     MyPanel(int PanelWidth, int PanelHeight) {
@@ -72,8 +83,8 @@ class MyPanel extends JPanel implements MouseListener {
         this.addMouseListener(this);
 
         timer = new Timer(128, e -> {
-            for (Heart heart : hearts) {
-                heart.BroMove();
+            for (Viksa_beer Viksa : Viksas_beer) {
+                Viksa.BroMove();
             }
             repaint();
         });
@@ -85,6 +96,9 @@ class MyPanel extends JPanel implements MouseListener {
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_SPACE) {
                     timer.stop();
+                    for (Viksa_beer Viksa : Viksas_beer) {
+                        serialization(Viksa);
+                    }
                 }
             }
 
@@ -95,16 +109,16 @@ class MyPanel extends JPanel implements MouseListener {
             }
         });
     }
-
-    public void addHeart(Heart heart) {
-        hearts.add(heart);
+    
+    public void addViksa(Viksa_beer Viksa) {
+        Viksas_beer.add(Viksa);
     }
 
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
-        for (Heart heart : hearts) {
-            heart.paintComponent(g);
+        for (Viksa_beer Viksa : Viksas_beer) {
+            Viksa.paintComponent(g);
         }
     }
 
@@ -112,7 +126,7 @@ class MyPanel extends JPanel implements MouseListener {
     public void mouseClicked(MouseEvent e) {
         int initialX = e.getX() - (52 / 2);  // штука чтобы сердце спавнилось по центру мышки
         int initialY = e.getY() - (76 / 2);  // доп доп ес ес
-        this.addHeart(new Heart(initialX, initialY));
+        this.addViksa(new Viksa_beer(initialX, initialY));
     }
 
     @Override
