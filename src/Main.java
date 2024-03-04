@@ -2,16 +2,20 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 
+import java.awt.image.BufferedImage;
 import java.io.*;
-import java.util.Objects;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
+import javax.imageio.ImageIO;
 
 abstract class Object extends JPanel implements Serializable {
     private int x;
     private int y;
 
     private Random random;
-    private transient Image img;
+    private transient BufferedImage img;
 
     abstract public void BroMove();
 }
@@ -25,13 +29,19 @@ class Viksa_beer extends Object implements Serializable {
 
 
     private final Random random;
-    private final transient Image img;
+    private transient BufferedImage img;
 
     Viksa_beer(int x, int y) {
         this.x = x;
         this.y = y;
         this.random = new Random();
-        img = new ImageIcon(Objects.requireNonNull(getClass().getResource("/1122.png"))).getImage();
+        URL resource = getClass().getResource("1122.png");
+        try {
+            assert resource != null;
+            img = ImageIO.read(resource);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public int getX() {
@@ -55,31 +65,43 @@ class Viksa_beer extends Object implements Serializable {
         this.y += deltaY;
     }
 
+    private void writeObject(ObjectOutputStream out) throws IOException {
+        out.defaultWriteObject();
+
+        ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        ImageIO.write(img, "png", byteStream);
+
+        out.writeObject(byteStream.toByteArray());
+        System.out.println("Ебать тебы во все дыры, сериализованнность");
+    }
+
+    private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+        in.defaultReadObject();
+
+        byte[] imageData = (byte[]) in.readObject();
+
+        // Deserialize byte array to BufferedImage
+        ByteArrayInputStream byteStream = new ByteArrayInputStream(imageData);
+        img = ImageIO.read(byteStream);
+    }
+
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
         g.drawImage(this.img, this.getX(), this.getY(), null);
     }
 
-    public void serialization() {
-        try (ObjectOutputStream objectOutputStream = new ObjectOutputStream(new FileOutputStream("seri.ser"))) {
-            objectOutputStream.writeObject(this);
-            System.out.println("Object has been serialized.");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
 }
 
 
 
-class MyPanel extends JPanel implements MouseListener {
-    private java.util.List<Viksa_beer> Viksas_beer = new java.util.ArrayList<>();
+class MyPanel extends JPanel implements MouseListener, Serializable {
+    private java.util.List<Viksa_beer> Viksas_beer = new ArrayList<>();
+    private BufferedImage backgroundImage;
     private Timer timer;
 
     MyPanel(int PanelWidth, int PanelHeight) {
         this.setPreferredSize(new Dimension(PanelWidth, PanelHeight));
-        this.setBackground(Color.PINK);
         this.addMouseListener(this);
 
         timer = new Timer(128, e -> {
@@ -94,14 +116,10 @@ class MyPanel extends JPanel implements MouseListener {
         addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_SPACE) {
-                    timer.stop();
-                    for (Viksa_beer Viksa : Viksas_beer) {
-                        serialization(Viksa);
-                    }
-                }
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) timer.stop();
+                if (e.getKeyCode() == KeyEvent.VK_M) Serialization_on_key();
+                if (e.getKeyCode() == KeyEvent.VK_N) Deserialization_on_key();
             }
-
             @Override
             public void keyReleased(KeyEvent e) {
                 super.keyReleased(e);
@@ -110,13 +128,15 @@ class MyPanel extends JPanel implements MouseListener {
         });
     }
     
-    public void addViksa(Viksa_beer Viksa) {
-        Viksas_beer.add(Viksa);
-    }
+    public void addViksa(Viksa_beer Viksa) {Viksas_beer.add(Viksa);}
 
     @Override
     public void paintComponent(Graphics g) {
         super.paintComponent(g);
+        BufferedImage backgroundImage = getBackgroundImage();
+        if (backgroundImage != null) {
+            g.drawImage(backgroundImage, 0, 0, getWidth(), getHeight(), this);
+        }
         for (Viksa_beer Viksa : Viksas_beer) {
             Viksa.paintComponent(g);
         }
@@ -128,6 +148,45 @@ class MyPanel extends JPanel implements MouseListener {
         int initialY = e.getY() - (76 / 2);  // доп доп ес ес
         this.addViksa(new Viksa_beer(initialX, initialY));
     }
+
+    private void Serialization_on_key() {
+        for (int i = 0; i < Viksas_beer.size(); i++) {
+            String ser_name = String.format("./Serialization/Viksa_%d.ser", i);
+            try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(ser_name))) {
+                out.writeObject(Viksas_beer.get(i));
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private void Deserialization_on_key() {
+        String directoryPath = "./Serialization";
+        File directory = new File(directoryPath);
+        File[] files = directory.listFiles();
+        java.util.List<File> ListFiles = Arrays.stream(files).toList();
+        for (int i = 0; i < ListFiles.size(); i++) {
+            try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(ListFiles.get(i)))) {
+                Viksa_beer UnserializedViksa = (Viksa_beer) in.readObject();
+                Viksas_beer.add(UnserializedViksa);
+            } catch (IOException | ClassNotFoundException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
+    private BufferedImage getBackgroundImage() {
+        BufferedImage backgroundImage = null;
+        URL resource = getClass().getResource("./beer_background.jpg");
+        try {
+            assert resource != null;
+            backgroundImage = ImageIO.read(resource);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return backgroundImage;
+    }
+
 
     @Override
     public void mousePressed(MouseEvent e) {}
