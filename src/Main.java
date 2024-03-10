@@ -17,7 +17,13 @@ abstract class Object extends JPanel implements Serializable {
     private Random random;
     private transient BufferedImage img;
 
-    abstract public void BroMove();
+    public abstract void BroMove();
+
+    public abstract void txtOut();
+    public abstract void txtIn();
+
+    public abstract void BinaryOut();
+    public abstract void BinaryIn();
 }
 
 
@@ -26,6 +32,10 @@ class Viksa_beer extends Object implements Serializable {
     private int y;
     public int heartWidth = 64;
     public int heartHeight = 64;
+    public boolean stateFlag;
+
+    @Serial
+    private static final long serialVersionUID = 7380655875865432001L;
 
 
     private final Random random;
@@ -34,6 +44,7 @@ class Viksa_beer extends Object implements Serializable {
     Viksa_beer(int x, int y) {
         this.x = x;
         this.y = y;
+        this.stateFlag = false;
         this.random = new Random();
         URL resource = getClass().getResource("1122.png");
         try {
@@ -54,15 +65,44 @@ class Viksa_beer extends Object implements Serializable {
         return this.img;
     }
 
-
     public void BroMove() {
-        double randomSeed = random.nextDouble(-10, 10) * 2 * Math.PI;
-
-        double deltaX = 10 * Math.cos(randomSeed);
-        double deltaY = 10 * Math.sin(randomSeed);
-
+        double deltaX = 0;
+        double deltaY = 0;
+        if (!this.stateFlag) {
+            double randomSeed = random.nextDouble(-10, 10) * 2 * Math.PI;
+            deltaX = 10 * Math.cos(randomSeed);
+            deltaY = 10 * Math.sin(randomSeed);
+        }
         this.x += deltaX;
         this.y += deltaY;
+    }
+
+
+    @Override
+    public void txtOut() {
+//        try (BufferedWriter writer = new BufferedWriter(new FileWriter("serializedObject.txt"))) {
+//            // Записываем данные объекта в текстовый файл
+//            writer.write(this.getMessage() + "\n");
+//            writer.write(Integer.toString(objectToSerialize.getValue()));
+//            System.out.println("Object saved to text file successfully.");
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+    }
+
+    @Override
+    public void txtIn() {
+
+    }
+
+    @Override
+    public void BinaryOut() {
+
+    }
+
+    @Override
+    public void BinaryIn() {
+
     }
 
     private void writeObject(ObjectOutputStream out) throws IOException {
@@ -72,7 +112,7 @@ class Viksa_beer extends Object implements Serializable {
         ImageIO.write(img, "png", byteStream);
 
         out.writeObject(byteStream.toByteArray());
-        System.out.println("Ебать тебы во все дыры, сериализованнность");
+        System.out.println("Ебать тебя во все дыры, сериализованнность");
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
@@ -104,7 +144,7 @@ class MyPanel extends JPanel implements MouseListener, Serializable {
         this.setPreferredSize(new Dimension(PanelWidth, PanelHeight));
         this.addMouseListener(this);
 
-        timer = new Timer(128, e -> {
+        timer = new Timer(32, e -> {
             for (Viksa_beer Viksa : Viksas_beer) {
                 Viksa.BroMove();
             }
@@ -119,16 +159,22 @@ class MyPanel extends JPanel implements MouseListener, Serializable {
                 if (e.getKeyCode() == KeyEvent.VK_SPACE) timer.stop();
                 if (e.getKeyCode() == KeyEvent.VK_M) Serialization_on_key();
                 if (e.getKeyCode() == KeyEvent.VK_N) Deserialization_on_key();
+                if (e.getKeyCode() == KeyEvent.VK_C) Viksas_beer.clear();
+                if (e.getKeyCode() == KeyEvent.VK_ALT) drop_all_ser();
             }
             @Override
             public void keyReleased(KeyEvent e) {
-                super.keyReleased(e);
-                timer.restart();
+                if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    super.keyReleased(e);
+                    timer.restart();
+                }
             }
         });
     }
     
     public void addViksa(Viksa_beer Viksa) {Viksas_beer.add(Viksa);}
+
+
 
     @Override
     public void paintComponent(Graphics g) {
@@ -144,9 +190,37 @@ class MyPanel extends JPanel implements MouseListener, Serializable {
 
     @Override
     public void mouseClicked(MouseEvent e) {
-        int initialX = e.getX() - (52 / 2);  // штука чтобы сердце спавнилось по центру мышки
-        int initialY = e.getY() - (76 / 2);  // доп доп ес ес
-        this.addViksa(new Viksa_beer(initialX, initialY));
+        boolean thisViksa = false;
+        for (Viksa_beer Viksa : Viksas_beer) {
+            Rectangle ImageBounds = new Rectangle(Viksa.getX(), Viksa.getY(), 52, 76);
+            if (ImageBounds.contains(e.getX(), e.getY())) {
+                if (Viksa.stateFlag) {
+                    Viksa.stateFlag = false;
+                } else {
+                    Viksa.stateFlag = true;
+                }
+                thisViksa = true;
+                break;
+            }
+        }
+        if (!thisViksa) {
+            int initialX = e.getX() - (52 / 2);
+            int initialY = e.getY() - (76 / 2);
+            this.addViksa(new Viksa_beer(initialX, initialY));
+        }
+    }
+
+    private void drop_all_ser() {
+        String directoryPath = "./Serialization/";
+        File directory = new File(directoryPath);
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isFile()) {
+                        file.delete();
+                    }
+                }
+            }
     }
 
     private void Serialization_on_key() {
