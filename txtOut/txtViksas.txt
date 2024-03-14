@@ -1,0 +1,1 @@
+Viksa{x=351, y=222', imagePath=1122.png}

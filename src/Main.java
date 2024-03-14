@@ -8,14 +8,18 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 abstract class Object extends JPanel implements Serializable {
     private int x;
     private int y;
 
-    private Random random;
-    private transient BufferedImage img;
+    Random random;
+    transient BufferedImage img;
+
+    @Serial
+    private static final long serialVersionUID = 7380655875865432001L;
 
     public abstract void BroMove();
 
@@ -34,22 +38,17 @@ class Viksa_beer extends Object implements Serializable {
     public int heartHeight = 64;
     public boolean stateFlag;
 
-    @Serial
-    private static final long serialVersionUID = 7380655875865432001L;
-
-
-    private final Random random;
-    private transient BufferedImage img;
+    private final String ImagePath = "1122.png";
 
     Viksa_beer(int x, int y) {
         this.x = x;
         this.y = y;
         this.stateFlag = false;
-        this.random = new Random();
-        URL resource = getClass().getResource("1122.png");
+        super.random = new Random();
+        URL resource = getClass().getResource(ImagePath);
         try {
             assert resource != null;
-            img = ImageIO.read(resource);
+            super.img = ImageIO.read(resource);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -80,14 +79,12 @@ class Viksa_beer extends Object implements Serializable {
 
     @Override
     public void txtOut() {
-//        try (BufferedWriter writer = new BufferedWriter(new FileWriter("serializedObject.txt"))) {
-//            // Записываем данные объекта в текстовый файл
-//            writer.write(this.getMessage() + "\n");
-//            writer.write(Integer.toString(objectToSerialize.getValue()));
-//            System.out.println("Object saved to text file successfully.");
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
+        final String txtOutPath = "./txtOut/txtViksas.txt";
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(txtOutPath, true))) {
+            writer.write(this.dataToString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -107,20 +104,14 @@ class Viksa_beer extends Object implements Serializable {
 
     private void writeObject(ObjectOutputStream out) throws IOException {
         out.defaultWriteObject();
-
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
         ImageIO.write(img, "png", byteStream);
-
         out.writeObject(byteStream.toByteArray());
-        System.out.println("Ебать тебя во все дыры, сериализованнность");
     }
 
     private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
-
         byte[] imageData = (byte[]) in.readObject();
-
-        // Deserialize byte array to BufferedImage
         ByteArrayInputStream byteStream = new ByteArrayInputStream(imageData);
         img = ImageIO.read(byteStream);
     }
@@ -131,11 +122,15 @@ class Viksa_beer extends Object implements Serializable {
         g.drawImage(this.img, this.getX(), this.getY(), null);
     }
 
+    private String dataToString() {
+        return "Viksa{x=" + this.getX() + ", y=" + this.getY() + "', imagePath=" + this.ImagePath + "}\n";
+    }
 }
 
 
 
 class MyPanel extends JPanel implements MouseListener, Serializable {
+    private static Logger log = Logger.getLogger(Viksa_beer.class.getName());
     private java.util.List<Viksa_beer> Viksas_beer = new ArrayList<>();
     private BufferedImage backgroundImage;
     private Timer timer;
@@ -157,10 +152,17 @@ class MyPanel extends JPanel implements MouseListener, Serializable {
             @Override
             public void keyPressed(KeyEvent e) {
                 if (e.getKeyCode() == KeyEvent.VK_SPACE) timer.stop();
-                if (e.getKeyCode() == KeyEvent.VK_M) Serialization_on_key();
-                if (e.getKeyCode() == KeyEvent.VK_N) Deserialization_on_key();
+                if (e.getKeyCode() == KeyEvent.VK_1) Serialization_on_key();
+                if (e.getKeyCode() == KeyEvent.VK_2) Deserialization_on_key();
+                if (e.getKeyCode() == KeyEvent.VK_3) {
+                    try {
+                        txt_ot_on_key();
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                }
                 if (e.getKeyCode() == KeyEvent.VK_C) Viksas_beer.clear();
-                if (e.getKeyCode() == KeyEvent.VK_ALT) drop_all_ser();
+                if (e.getKeyCode() == KeyEvent.VK_DELETE) drop_all_ser();
             }
             @Override
             public void keyReleased(KeyEvent e) {
@@ -213,28 +215,33 @@ class MyPanel extends JPanel implements MouseListener, Serializable {
     private void drop_all_ser() {
         String directoryPath = "./Serialization/";
         File directory = new File(directoryPath);
-            File[] files = directory.listFiles();
-            if (files != null) {
-                for (File file : files) {
-                    if (file.isFile()) {
-                        file.delete();
-                    }
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile()) {
+                    file.delete();
                 }
             }
+        }
+        log.info("\"Dropped all ser's\"");
     }
 
     private void Serialization_on_key() {
+        int successfully_serialized = 0;
         for (int i = 0; i < Viksas_beer.size(); i++) {
             String ser_name = String.format("./Serialization/Viksa_%d.ser", i);
             try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(ser_name))) {
                 out.writeObject(Viksas_beer.get(i));
+                successfully_serialized++;
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
         }
+        log.info(String.format("%d objects has been serialized", successfully_serialized));
     }
 
     private void Deserialization_on_key() {
+        int successfully_unserialized = 0;
         String directoryPath = "./Serialization";
         File directory = new File(directoryPath);
         File[] files = directory.listFiles();
@@ -242,11 +249,28 @@ class MyPanel extends JPanel implements MouseListener, Serializable {
         for (int i = 0; i < ListFiles.size(); i++) {
             try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(ListFiles.get(i)))) {
                 Viksa_beer UnserializedViksa = (Viksa_beer) in.readObject();
+                if (UnserializedViksa != null) {
+                    successfully_unserialized++;
+                }
                 Viksas_beer.add(UnserializedViksa);
             } catch (IOException | ClassNotFoundException ex) {
                 ex.printStackTrace();
             }
         }
+        log.info(String.format("%d objects has been unserialized", successfully_unserialized));
+    }
+
+
+    private void txt_ot_on_key() throws IOException {
+        int successfully_txt_out = 0;
+        String directoryPath = "./txtOut/txtViksas.txt";
+        File file = new File(directoryPath);
+        if (file.isFile()) file.delete();
+        for (Viksa_beer viksaBeer : Viksas_beer) {
+            viksaBeer.txtOut();
+            successfully_txt_out++;
+        }
+        log.info(String.format("%d objects has been written in txt", successfully_txt_out));
     }
 
     private BufferedImage getBackgroundImage() {
