@@ -335,7 +335,7 @@ class MyPanel extends JPanel implements MouseListener, Serializable {
 }
 
 class Window  {
-
+    //
     final private int width = 720;
     final private int height = 1280;
 
