@@ -1,0 +1,37 @@
+
+<lab1:project xmlns:lab1="http://maven.apache.org/POM/4.0.0"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <lab1:modelVersion>4.0.0</lab1:modelVersion>
+
+    <lab1:groupId>org.example</lab1:groupId>
+    <lab1:artifactId>hui_hurma</lab1:artifactId>
+    <lab1:version>1.0-SNAPSHOT</lab1:version>
+
+    <lab1:properties>
+        <lab1:maven.compiler.source>21</lab1:maven.compiler.source>
+        <lab1:maven.compiler.target>21</lab1:maven.compiler.target>
+        <lab1:project.build.sourceEncoding>UTF-8</lab1:project.build.sourceEncoding>
+    </lab1:properties>
+
+
+    <lab1:dependencyManagement>
+        <lab1:dependencies>
+            <lab1:dependency>
+                <lab1:groupId>com.thoughtworks.xstream</lab1:groupId>
+                <lab1:artifactId>xstream-parent</lab1:artifactId>
+                <lab1:version>1.4.20</lab1:version>
+            </lab1:dependency>
+            <lab1:dependency>
+                <lab1:groupId>org.xmlpull</lab1:groupId>
+                <lab1:artifactId>xmlpull</lab1:artifactId>
+                <lab1:version>1.1.3.4d_b4_min</lab1:version>
+            </lab1:dependency>
+            <lab1:dependency>
+                <lab1:groupId>com.fasterxml.jackson.dataformat</lab1:groupId>
+                <lab1:artifactId>jackson-dataformat-xml</lab1:artifactId>
+                <lab1:version>2.11.1</lab1:version>
+            </lab1:dependency>
+        </lab1:dependencies>
+    </lab1:dependencyManagement>
+</lab1:project>
